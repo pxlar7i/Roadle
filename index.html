@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Roadle — the daily junction puzzle</title>
+<meta name="description" content="A new junction every day. Place signs, lights and roundabouts, test them with rush-hour traffic, and keep the city moving for as little money as possible.">
+<meta name="theme-color" content="#fff7ea">
+<meta property="og:title" content="Roadle — the daily junction puzzle">
+<meta property="og:description" content="One junction a day. Keep the traffic flowing without breaking the budget.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23666b82'/%3E%3Cpath d='M32 4v56M4 32h56' stroke='%23fff4d8' stroke-width='4' stroke-dasharray='7 6'/%3E%3Ccircle cx='32' cy='32' r='13' fill='%23ff6b6b' stroke='%23fff' stroke-width='4'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <header class="top">
+    <button class="brand" id="brand" aria-label="Roadle">
+      <svg viewBox="0 0 64 64" width="34" height="34" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#666b82"/><path d="M32 4v56M4 32h56" stroke="#fff4d8" stroke-width="4" stroke-dasharray="7 6"/><circle cx="32" cy="32" r="13" fill="#ff6b6b" stroke="#fff" stroke-width="4"/></svg>
+      <span>Roadle</span>
+    </button>
+    <div class="daybox">
+      <div class="dayline"><span id="dayName">Monday</span><span class="dayno" id="dayNo">#1</span></div>
+      <div class="dots" id="dots" title="Difficulty grows through the week"></div>
+    </div>
+    <nav class="hdr-btns">
+      <button class="icon-btn" id="btnHelp" title="How to play" aria-label="How to play"><svg viewBox="0 0 24 24"><path d="M9.2 9a3 3 0 1 1 4.6 2.5c-.9.6-1.8 1.300-1.800 2.500M12 17.500v.1" fill="none" stroke="currentColor" stroke-width="2.400" stroke-linecap="round"/></svg></button>
+      <button class="icon-btn" id="btnStats" title="Your stats" aria-label="Your stats"><svg viewBox="0 0 24 24"><path d="M6 19v-6M12 19V5M18 19v-9" fill="none" stroke="currentColor" stroke-width="2.600" stroke-linecap="round"/></svg></button>
+      <button class="icon-btn" id="btnSound" title="Sound" aria-label="Toggle sound"><svg viewBox="0 0 24 24"><path d="M4 10v4h3l5 4V6L7 10z" fill="currentColor"/><path class="snd-on" d="M15.500 9a4 4 0 0 1 0 6M18 6.500a7.500 7.500 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path class="snd-off" d="M16 9.500l5 5M21 9.500l-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+      <button class="icon-btn" id="btnSettings" title="Settings" aria-label="Settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.200" fill="none" stroke="currentColor" stroke-width="2.200"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.600 5.600l2.100 2.100M16.300 16.300l2.100 2.100M5.600 18.400l2.100-2.100M16.300 7.700l2.100-2.100" stroke="currentColor" stroke-width="2.200" stroke-linecap="round"/></svg></button>
+    </nav>
+  </header>
+
+  <main class="layout">
+    <section class="stage">
+      <div class="titlebar">
+        <h1 id="jname">…</h1>
+        <div class="chips" id="chips"></div>
+      </div>
+      <div class="canvas-wrap" id="canvasWrap">
+        <canvas id="cv" aria-label="Junction map"></canvas>
+        <button class="float-btn" id="btnForecast" title="Show where traffic wants to go">Forecast</button>
+        <div class="run-badge" id="runBadge" hidden></div>
+        <div class="toast" id="toast" hidden></div>
+        <div class="tip" id="tip" hidden></div>
+      </div>
+      <div class="timeline"><canvas id="tl" height="56"></canvas></div>
+    </section>
+
+    <aside class="panel">
+      <div class="card brief" id="brief"></div>
+
+      <div class="card stats" id="statRow">
+        <div class="stat"><span class="k">Spent</span><span class="v" id="stCost">0</span></div>
+        <div class="stat"><span class="k">Avg wait</span><span class="v" id="stDelay">–</span></div>
+        <div class="stat"><span class="k">Crashes</span><span class="v" id="stCrash">–</span></div>
+        <div class="stat"><span class="k">Through</span><span class="v" id="stDone">–</span></div>
+      </div>
+
+      <div class="card tools" id="toolsCard">
+        <div class="card-h">Toolbox <small id="toolHint">pick a tool, then tap the map</small></div>
+        <div class="toolgrid" id="toolgrid"></div>
+      </div>
+
+      <div class="card seq" id="seqCard" hidden></div>
+
+      <div class="card result" id="resultCard" hidden></div>
+
+      <div class="actions" id="actions">
+        <div class="row">
+          <button class="btn big go" id="btnTest"><span class="ico">▶</span><span id="btnTestLbl">Test</span></button>
+          <button class="btn sample" id="btnSample" title="Traffic sample used for tests. Try another to check your design isn't just lucky.">Traffic <b id="sampleName">A</b></button>
+        </div>
+        <div class="row speeds" id="speedRow">
+          <button class="btn sm" data-speed="1">1×</button>
+          <button class="btn sm" data-speed="2">2×</button>
+          <button class="btn sm" data-speed="4">4×</button>
+          <button class="btn sm" id="btnSkip" title="Jump to the result">Skip ⏭</button>
+        </div>
+        <button class="btn big submit" id="btnSubmit">Submit design</button>
+        <div class="subnote" id="subNote">One official rush hour per day. Test as much as you like first.</div>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<!-- modals -->
+<div class="modal" id="mHelp" hidden>
+  <div class="sheet">
+    <button class="close" data-close>×</button>
+    <h2>How to play</h2>
+    <p class="lead">Every day there's one new junction. Get the rush-hour traffic through it <b>quickly</b>, <b>safely</b> and <b>cheaply</b>.</p>
+    <ol class="steps">
+      <li><b>Read the junction.</b> Tap <i>Forecast</i> to see where traffic wants to go. Lettered badges mark each road.</li>
+      <li><b>Build.</b> Pick a tool, tap a glowing spot on the map. Everything you place costs money.</li>
+      <li><b>Test.</b> Press <i>Test</i> to send traffic through. Tweak and repeat as often as you like.</li>
+      <li><b>Submit.</b> One official rush hour decides today's score.</li>
+    </ol>
+    <h3>Score</h3>
+    <p>You start from a <b>flow score</b> (up to 1000) based on how long people wait — the worst-served road counts extra, and buses and trams carry lots of people. Then you lose points for every <b>crash</b> and for the <b>cost</b> of what you built. Beat the city engineer's score for three stars.</p>
+    <h3>Toolbox</h3>
+    <ul class="toollist" id="helpTools"></ul>
+    <h3>The week</h3>
+    <p>Mondays are gentle. Each day adds traffic and trouble — bus stops, tram lines, level crossings, double junctions — until Sunday.</p>
+    <button class="btn big go" data-close>Let's go</button>
+  </div>
+</div>
+
+<div class="modal" id="mResult" hidden>
+  <div class="sheet result-sheet">
+    <button class="close" data-close>×</button>
+    <div class="res-day" id="resDay"></div>
+    <div class="stars" id="resStars"></div>
+    <div class="bigscore"><span id="resScore">0</span><small>points</small></div>
+    <div class="breakdown" id="resBreak"></div>
+    <div class="engineer" id="resEng"></div>
+    <div class="roads" id="resRoads"></div>
+    <div class="row center">
+      <button class="btn big go" id="btnShare">Share</button>
+      <button class="btn big" data-close>Keep tinkering</button>
+    </div>
+    <div class="next" id="resNext"></div>
+  </div>
+</div>
+
+<div class="modal" id="mStats" hidden>
+  <div class="sheet">
+    <button class="close" data-close>×</button>
+    <h2>Your stats</h2>
+    <div class="statgrid" id="statGrid"></div>
+    <h3>This week</h3>
+    <div class="week" id="statWeek"></div>
+  </div>
+</div>
+
+<div class="modal" id="mSettings" hidden>
+  <div class="sheet">
+    <button class="close" data-close>×</button>
+    <h2>Settings</h2>
+    <label class="setrow"><span>Sound effects</span><input type="checkbox" id="setSound"></label>
+    <label class="setrow"><span>Traffic drives on the</span>
+      <select id="setHand"><option value="auto">auto (from your region)</option><option value="left">left</option><option value="right">right</option></select>
+    </label>
+    <label class="setrow"><span>Gentler animations</span><input type="checkbox" id="setCalm"></label>
+    <p class="fine">The junction is mirrored for left-hand traffic, so everyone solves the same puzzle.</p>
+  </div>
+</div>
+
+<div class="modal" id="mConfirm" hidden>
+  <div class="sheet small">
+    <h2 id="cfTitle">Submit this design?</h2>
+    <p id="cfText">The official rush hour uses fresh traffic — you get one go per day.</p>
+    <div class="row center">
+      <button class="btn big" data-close>Not yet</button>
+      <button class="btn big submit" id="cfYes">Submit</button>
+    </div>
+  </div>
+</div>
+
+<div class="dev" id="dev" hidden></div>
+
+<!-- Optional: the link included in shared results. Defaults to the address the game is served from.
+<script>window.ROADLE_URL = "https://your-site.example/roadle/";</script> -->
+<script src="js/util.js"></script>
+<script src="js/level.js"></script>
+<script src="js/net.js"></script>
+<script src="js/sim.js"></script>
+<script src="js/solver.js"></script>
+<script src="js/render.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>
