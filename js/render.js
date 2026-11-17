@@ -465,7 +465,9 @@
   };
 
   Renderer.prototype.drawFurniture = function (ctx, sim) {
-    var net = this.net, self = this, P = {};
+    // While traffic is running, the live signal and barrier states belong to the simulation's
+    // own copy of the network (same geometry as the build-mode one).
+    var net = sim ? sim.net : this.net, self = this, P = {};
     net.segs.forEach(function (sg) {
       if (!sg.app || (sg.kind !== 'lane' && sg.kind !== 'track')) return;
       var app = sg.app, node = app.node;
@@ -540,7 +542,7 @@
         var hx = Math.cos(P.a), hy = Math.sin(P.a), nx = -hy, ny = hx;
         var bx = P.x + nx * 0.27, by = P.y + ny * 0.27;
         // arm pivots at the kerb: open = along the road, closed = across the lane
-        var ang = P.a + Math.PI / 2 + (1 - self.barrier) * (Math.PI / 2) + Math.PI / 2;
+        var ang = P.a - Math.PI / 2 - (1 - self.barrier) * (Math.PI / 2);
         ctx.save(); ctx.translate(bx, by);
         ctx.fillStyle = SHADOW; ctx.beginPath(); ctx.arc(0.03, 0.04, 0.085, 0, TAU); ctx.fill();
         ctx.save(); ctx.rotate(ang);

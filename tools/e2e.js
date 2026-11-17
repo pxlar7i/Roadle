@@ -109,7 +109,21 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     check(await ev('Roadle.__S.sim.veh.length > 0'), 'vehicles on the map');
     await shot('e2e-running');
     await clickSel('#speedRow [data-speed="4"]');
-    await sleep(700);
+    // the lamps drawn on the board must follow the signal plan: sample the canvas pixel at one lamp over time
+    const lampProbe = '(()=>{const S=Roadle.__S, sim=S.sim; if(!sim) return null; const node=sim.net.nodes[0]; const app=node.apps.filter(a=>a)[0];' +
+      'const p=Roadle.net.posAt(app.lane.path, app.lane.len-0.03, {}); const hx=Math.cos(p.a), hy=Math.sin(p.a);' +
+      'const wx=p.x-hy*0.3-hx*0.06, wy=p.y+hx*0.3-hy*0.06; const cv=document.querySelector("#cv"); const N=S.level.N;' +
+      'const px=Math.round((S.mirror?N-wx:wx)/N*cv.width), py=Math.round(wy/N*cv.height);' +
+      'const d=cv.getContext("2d").getImageData(px,py,1,1).data; return {state:app.state, r:d[0], g:d[1], b:d[2]};})()';
+    const seen = {};
+    for (let k = 0; k < 40; k++) { const s = await ev(lampProbe); if (s) seen[s.state] = s; await sleep(120); }
+    const red = seen[0], green = seen[1];
+    check(!!red && !!green, 'signal goes through red and green during the run');
+    check(!!red && red.r > 200 && red.g < 140, 'lamp on the board is red when the signal is red ' + JSON.stringify(red || {}));
+    check(!!green && green.g > 180 && green.r < 140, 'lamp on the board is green when the signal is green ' + JSON.stringify(green || {}));
+    if (seen[2]) check(seen[2].r > 200 && seen[2].g > 150 && seen[2].b < 120, 'lamp on the board is amber on the last green tick ' + JSON.stringify(seen[2]));
+    await shot('e2e-running-later');
+    await sleep(300);
     await clickSel('#btnSkip');
     await sleep(2500);
     check(await ev('!document.querySelector("#resultCard").hidden'), 'test result card shown');
